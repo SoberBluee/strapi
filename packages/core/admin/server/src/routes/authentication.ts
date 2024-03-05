@@ -40,6 +40,12 @@ export default [
   },
   {
     method: 'POST',
+    path: '/multi-factor-authentication',
+    handler: 'authentication.multiFactorAuthentication',
+    config: { auth: false },
+  },
+  {
+    method: 'POST',
     path: '/reset-password',
     handler: 'authentication.resetPassword',
     config: { auth: false },

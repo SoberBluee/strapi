@@ -75,4 +75,17 @@ For security reasons, prefer storing the secret in an environment variable and r
   }
 };
 
-export { createToken, createJwtToken, getTokenOptions, decodeJwtToken, checkSecretIsDefined };
+/**
+ * Create a random 6 digit verification code used for multi-factor authentication
+ * @returns {string}
+ */
+const createVerificationToken = () => {
+  // Generate a 3-byte (24-bit) random number
+  // Convert the random bytes to a hexadecimal string
+  // Convert the hexadecimal string to a decimal number
+  // Ensure the code is 6 digits
+  const crypto = require('crypto');
+  return (parseInt(crypto.randomBytes(3).toString('hex'), 16) % 1000000).toString().padStart(6, '0');
+};
+
+export { createToken, createJwtToken, getTokenOptions, decodeJwtToken, checkSecretIsDefined, createVerificationToken };

@@ -68,7 +68,7 @@ module.exports = {
       target: 'plugin::users-permissions.role',
       inversedBy: 'users',
       configurable: false,
-    },
+    }
   },
 
   config: schemaConfig, // TODO: to move to content-manager options

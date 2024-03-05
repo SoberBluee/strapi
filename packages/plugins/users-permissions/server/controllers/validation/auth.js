@@ -27,6 +27,17 @@ const forgotPasswordSchema = yup
   })
   .noUnknown();
 
+const multiFactorAuthenticationSchema = yup
+  .object({
+      code: yup.number()
+        .typeError('Please enter a valid number')
+        .integer()
+        .min(100000, 'The code must be at least 6 digits')
+        .max(999999, 'The code cannot be more than 6 digits')
+        .required()
+  })
+  .noUnknown();
+
 const resetPasswordSchema = yup
   .object({
     password: yup.string().required(),
@@ -52,6 +63,7 @@ module.exports = {
   validateSendEmailConfirmationBody: validateYupSchema(sendEmailConfirmationSchema),
   validateEmailConfirmationBody: validateYupSchema(validateEmailConfirmationSchema),
   validateForgotPasswordBody: validateYupSchema(forgotPasswordSchema),
+  validateMultiFactorAuthenticationBody: validateYupSchema(multiFactorAuthenticationSchema),
   validateResetPasswordBody: validateYupSchema(resetPasswordSchema),
   validateChangePasswordBody: validateYupSchema(changePasswordSchema),
 };

@@ -17,7 +17,6 @@ const createLocalStrategy = (strapi: Strapi, middleware?: any) => {
           if (middleware) {
             return middleware([error, user, message], done);
           }
-
           return done(error, user, message);
         })
         .catch((error) => done(error));

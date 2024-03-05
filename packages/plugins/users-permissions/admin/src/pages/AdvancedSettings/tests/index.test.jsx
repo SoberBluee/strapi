@@ -68,6 +68,7 @@ describe('ADMIN | Pages | Settings | Advanced Settings', () => {
     ).toBeInTheDocument();
     expect(getByRole('checkbox', { name: 'One account per email address' })).toBeInTheDocument();
     expect(getByRole('checkbox', { name: 'Enable sign-ups' })).toBeInTheDocument();
+    expect(getByRole('checkbox', { name: 'Enable multi-factor authentication' })).toBeInTheDocument();
     expect(getByRole('checkbox', { name: 'Enable email confirmation' })).toBeInTheDocument();
     expect(getByRole('textbox', { name: 'Reset password page' })).toBeInTheDocument();
     expect(getByRole('textbox', { name: 'Redirection url' })).toBeInTheDocument();

@@ -10,6 +10,6 @@ module.exports = {
     },
     provider: {
       hidden: true,
-    },
+    }
   },
 };

@@ -9,6 +9,7 @@ import {
   validateAdminRegistrationInput,
   validateRegistrationInfoQuery,
   validateForgotPasswordInput,
+  validateMultiFactorAuthenticationInput,
   validateResetPasswordInput,
   validateRenewTokenInput,
 } from '../validation/authentication';
@@ -23,14 +24,15 @@ import type {
 } from '../../../shared/contracts/authentication';
 import { AdminUser } from '../../../shared/contracts/shared';
 
-const { ApplicationError, ValidationError } = errors;
+const { ApplicationError, ForbiddenError, ValidationError } = errors;
 
 export default {
   login: compose([
     (ctx: Context, next: Next) => {
-      return passport.authenticate('local', { session: false }, (err, user, info) => {
+      const advanced = await strapi.store({type: 'plugin', name: 'users-permissions', key: 'advanced'}).get();
+      return passport.authenticate('local', {session: false}, (err, user, info) => {
         if (err) {
-          strapi.eventHub.emit('admin.auth.error', { error: err, provider: 'local' });
+          strapi.eventHub.emit('admin.auth.error', {error: err, provider: 'local'});
           // if this is a recognized error, allow it to bubble up to user
           if (err.details?.code === 'LOGIN_NOT_ALLOWED') {
             throw err;
@@ -52,20 +54,36 @@ export default {
         query.user = user;
 
         const sanitizedUser = getService('user').sanitizeUser(user);
-        strapi.eventHub.emit('admin.auth.success', { user: sanitizedUser, provider: 'local' });
+        // Multi factor authentication setting check
+        if (advanced.multi_factor_authentication) {
+          // Generate 6 digit code
+          const verificationCode = getService('token').createVerificationToken();
+          getService('auth').sendMultiFactorAuthenticationEmail({
+            user: sanitizedUser,
+            code: verificationCode
+          });
 
+          // Store the verification code and user information in the session for verification later
+          ctx.session.verificationCode = verificationCode;
+          ctx.session.user = user;
+        } else {
+          strapi.eventHub.emit('admin.auth.success', {user: sanitizedUser, provider: 'local'});
+        }
         return next();
-      })(ctx, next);
+      })(ctx);
     },
-    (ctx: Context) => {
-      const { user } = ctx.state as { user: AdminUser };
+    async (ctx) => {
+      const advanced = await strapi.store({type: 'plugin', name: 'users-permissions', key: 'advanced'}).get();
+      const {user} = ctx.state as { user: AdminUser };
 
       ctx.body = {
         data: {
-          token: getService('token').createJwtToken(user),
-          user: getService('user').sanitizeUser(ctx.state.user), // TODO: fetch more detailed info
+          token: null,
+          user: getService('user').sanitizeUser(user), // TODO: fetch more detailed info,
+          mfa: advanced.multi_factor_authentication
         },
       } satisfies Login.Response;
+      ctx.session.rememberMe = ctx.request?.body?.rememberMe
     },
   ]),
 
@@ -160,6 +178,23 @@ export default {
     getService('auth').forgotPassword(input);
 
     ctx.status = 204;
+  },
+
+  async multiFactorAuthentication(ctx) {
+    const input = ctx.request.body;
+    await validateMultiFactorAuthenticationInput(input);
+    if (input.code !== Number(ctx.session.verificationCode)) {
+      // Throw forbidden error if verification code is incorrect
+      throw new ForbiddenError("Verification code is incorrect");
+    } else {
+      // Set token if valid
+      ctx.body = {
+        data: {
+          token: getService('token').createJwtToken(ctx.session.user),
+          rememberMe: ctx.session.rememberMe
+        },
+      };
+    }
   },
 
   async resetPassword(ctx: Context) {

@@ -88,6 +88,7 @@ const forgotPassword = async ({ email } = {} as { email: string }) => {
     });
 };
 
+
 /**
  * Reset a user password
  * @param resetPasswordToken token generated to request a password reset
@@ -110,4 +111,32 @@ const resetPassword = async (
   });
 };
 
-export default { checkCredentials, validatePassword, hashPassword, forgotPassword, resetPassword };
+/**
+ * Send 6 digit secret code to the user email
+ * @param {Object} param params
+ * @param {Object} param.user user that requested the MFA
+ * @param {string} param.code secret 6-digit code
+ */
+const sendMultiFactorAuthenticationEmail = async ({ user, code } = {}) => {
+    strapi
+      .plugin('email')
+      .service('email')
+      .sendTemplatedEmail(
+          {
+            to: user.email,
+            from: strapi.config.get('admin.forgotPassword.from'),
+            replyTo: strapi.config.get('admin.forgotPassword.replyTo'),
+          },
+          strapi.config.get('admin.multiFactorAuthentication.emailTemplate'),
+          {
+            code,
+            user: _.pick(user, ['email', 'firstname', 'lastname', 'username']),
+          }
+      )
+      .catch((err) => {
+        // log error server side but do not disclose it to the user to avoid leaking informations
+        strapi.log.error(err);
+      });
+};
+
+export default { checkCredentials, validatePassword, hashPassword, forgotPassword, resetPassword, sendMultiFactorAuthenticationEmail };
